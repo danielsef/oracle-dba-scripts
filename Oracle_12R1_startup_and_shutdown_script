@@ -1,0 +1,76 @@
+#!/bin/bash
+#
+# chkconfig: 35 98 03
+# description: Oracle 12R1 startup and shutdown script
+
+# source function library
+. /etc/rc.d/init.d/functions
+
+ORA_SCRIPTS=/u01/oracle/database/12.1/bin
+ORA_OWNER=oracle
+
+echo "-------------------------------------------------" >> /var/log/oracle.log
+date >> /var/log/oracle.log
+       
+start() {
+       if [ -x $ORA_SCRIPTS/dbstart ]; then
+           echo -n "Starting Oracle 12R1 databases: "
+           su - $ORA_OWNER -c "$ORA_SCRIPTS/dbstart" >> /var/log/oracle.log
+           echo_success
+           echo
+           echo -n "Starting Oracle 12R1 TNS listener: "
+           su - $ORA_OWNER -c "$ORA_SCRIPTS/lsnrctl start" >> /var/log/oracle.log
+		   echo_success
+		   touch /var/lock/subsys/oracle.log
+		   echo 
+		   echo -n "Starting Oracle Enterprise Manager 12 Database Control: "
+           su - $ORA_OWNER -c "$ORA_SCRIPTS/emctl start dbconsole" >> /var/log/oracle.log
+           echo_success
+           echo
+           exit 0
+       else
+           echo -n "Starting Oracle 12R1 databases: "
+           echo_failed
+           echo
+           exit 1;
+       fi
+}
+
+stop()  {
+       if [ -x $ORA_SCRIPTS/dbshut ]; then
+	       echo -n "Stopping Oracle Enterprise Manager 12 Database Control: "
+           su - $ORA_OWNER -c "$ORA_SCRIPTS/emctl stop dbconsole" >> /var/log/oracle.log
+           echo_success
+           echo
+           echo -n "Stoping Oracle 12R1 TNS listener: "
+           su - $ORA_OWNER -c "$ORA_SCRIPTS/lsnrctl stop" >> /var/log/oracle.log
+           echo_success
+           echo
+           echo -n "Stoping Oracle 12R1 databases: "
+           su - $ORA_OWNER -c $ORA_SCRIPTS/dbshut >> /var/log/oracle.log
+           echo_success
+           echo
+           rm -f /var/lock/subsys/oracle.log
+           exit 0
+       else
+           echo -n "Stoping Oracle 12R1 databases: "
+           echo_failed
+           echo
+           exit 1;
+       fi
+}
+
+
+case "$1" in
+ start)
+       start
+       ;;
+ stop)
+       stop
+       ;;
+ *)
+       echo $"Usage: $0 {start|stop}"
+       exit 1
+esac
+
+exit 0
